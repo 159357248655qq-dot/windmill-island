@@ -131,6 +131,23 @@ footer{
   background:transparent;color:var(--ink);border:1px solid var(--line);box-shadow:none
 }
 .btn.ghost:hover{border-color:rgba(140,200,255,.5)}
+
+/* ---------- 3d viewer ---------- */
+.viewerWrap{margin-top:22px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;position:relative;
+  background:radial-gradient(120% 90% at 50% 0%,#1b4677 0%,#0a1c33 60%,#06101f 100%);
+  box-shadow:0 30px 80px -34px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.04) inset}
+#viewer3d{position:relative;display:block;width:100%;height:clamp(380px,60vh,660px);touch-action:none;cursor:grab;overflow:hidden}
+#viewer3d:active{cursor:grabbing}
+.viewerBar{position:absolute;left:0;right:0;top:0;height:3px;background:rgba(255,255,255,.10);transition:opacity .6s ease}
+.viewerBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--warm),#7fd0ff);transition:width .25s ease}
+.viewerHud{position:absolute;left:14px;right:14px;bottom:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;pointer-events:none}
+.viewerHud .st{font-size:12.5px;color:#cfe2f5;background:rgba(6,16,31,.62);border:1px solid var(--line);border-radius:999px;padding:.32em .8em;backdrop-filter:blur(4px)}
+.viewerBtns{display:flex;gap:8px;pointer-events:auto}
+.vbtn{font-size:12.5px;font-weight:600;color:#dceaf8;background:rgba(6,16,31,.66);border:1px solid var(--line);border-radius:999px;padding:.42em .9em;cursor:pointer;font-family:inherit;transition:border-color .2s ease,color .2s ease}
+.vbtn:hover{border-color:rgba(140,200,255,.55);color:#fff}
+.vbtn[data-on="1"]{color:var(--warm);border-color:rgba(255,180,87,.5)}
+.viewerFoot{display:flex;flex-wrap:wrap;gap:10px 20px;justify-content:space-between;color:var(--dim);font-size:13px;margin-top:12px;padding:0 4px}
+.viewerFoot b{color:var(--ink);font-weight:600}
 </style>
 </head>
 <body>
@@ -147,6 +164,27 @@ footer{
     <span class="tag">1600 × 900 / 24fps</span>
   </div>
 </header>
+
+<section id="viewer">
+  <h2>实时 3D 模型</h2>
+  <p class="lead">整座浮岛不只是视频 —— 下面是可以直接拖动的实时 3D 场景。整套程序化材质先烘焙成逐顶点颜色，再压成 5.4 MB 的 Draco GLB，由 three.js 在浏览器里即时渲染，无后端、无 CDN。</p>
+  <div class="viewerWrap">
+    <div id="viewer3d"></div>
+    <div class="viewerBar" id="viewerBarWrap"><i id="viewerBar"></i></div>
+    <div class="viewerHud">
+      <span class="st" id="viewerStatus">正在加载模型…</span>
+      <div class="viewerBtns">
+        <button class="vbtn" id="btnRotate" data-on="1">暂停自转</button>
+        <button class="vbtn" id="btnReset">复位视角</button>
+        <button class="vbtn" id="btnFull">全屏</button>
+      </div>
+    </div>
+  </div>
+  <div class="viewerFoot">
+    <span><b>三角面</b> · <span id="viewerStats">加载中…</span></span>
+    <span><b>交互</b> · 左键旋转 / 滚轮缩放 / 右键平移</span>
+  </div>
+</section>
 
 <div class="stage">
   <div class="frame">
@@ -228,5 +266,9 @@ footer{
 </footer>
 
 </div>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/" } }
+</script>
+<script type="module" src="viewer.js"></script>
 </body>
 </html>
