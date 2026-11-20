@@ -5,6 +5,8 @@ import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { DRACOLoader } from './vendor/DRACOLoader.js';
 
 const host = document.getElementById('viewer3d');
+let homeDist = 34;
+const homeDir = new THREE.Vector3(0.60, 0.34, 0.72).normalize();
 const statusEl = document.getElementById('viewerStatus');
 const barEl = document.getElementById('viewerBar');
 const statsEl = document.getElementById('viewerStats');
@@ -21,10 +23,10 @@ host.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(38, host.clientWidth / host.clientHeight, 0.5, 400);
-camera.position.set(30, 16, 34);
+camera.position.copy(homeDir).multiplyScalar(homeDist);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, -1.5, 0);
+controls.target.set(0, 0, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
 controls.minDistance = 16;
@@ -42,16 +44,18 @@ const sky = new THREE.Mesh(
     depthWrite: false,
     uniforms: {
       top: { value: new THREE.Color('#0a2a63') },
-      mid: { value: new THREE.Color('#5aa0e6') },
-      bot: { value: new THREE.Color('#ffe4c4') },
+      mid: { value: new THREE.Color('#4f95e4') },
+      bot: { value: new THREE.Color('#cfdff2') },
     },
     vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
     fragmentShader: [
       'varying vec3 vP; uniform vec3 top; uniform vec3 mid; uniform vec3 bot;',
       'void main(){',
       '  float h = normalize(vP).y;',
-      '  vec3 c = mix(bot, mid, smoothstep(-0.05, 0.30, h));',
-      '  c = mix(c, top, smoothstep(0.20, 0.85, h));',
+      '  vec3 c = mix(bot, mid, smoothstep(-0.16, 0.02, h));',
+      '  c = mix(c, top, smoothstep(0.06, 0.72, h));',
+      '  float glow = smoothstep(-0.11, -0.03, h) * (1.0 - smoothstep(-0.03, 0.10, h));',
+      '  c = mix(c, vec3(1.0, 0.92, 0.80), glow * 0.30);',
       '  gl_FragColor = vec4(c, 1.0);',
       '}'
     ].join('\n'),
@@ -105,11 +109,29 @@ loader.load(
   (gltf) => {
     island = gltf.scene;
 
-    const box = new THREE.Box3().setFromObject(island);
+    // frame the island itself: far sky clouds sit at radius 50-70 and would blow up the bounds
+    island.updateMatrixWorld(true);
+    const box = new THREE.Box3();
+    island.traverse((o) => {
+      if (!o.isMesh) return;
+      if (/cloud|waterfall|spray|mist/i.test(o.name)) return;
+      box.expandByObject(o);
+    }) ;
     const c = box.getCenter(new THREE.Vector3());
     island.position.sub(c);
     island.position.y += (box.max.y - box.min.y) * 0.10;
     scene.add(island);
+
+    // fixed framing tuned to the baked asset (bounding boxes are unreliable: far clouds / long waterfall)
+    homeDist = 53;
+    camera.position.copy(homeDir).multiplyScalar(homeDist);
+    controls.target.set(0, 1.9, 0);
+    controls.minDistance = 18;
+    controls.maxDistance = 120;
+    camera.near = 0.5;
+    camera.far = 400;
+    camera.updateProjectionMatrix();
+    controls.update();
 
     rotor = island.getObjectByName('Rotor');
 
@@ -167,8 +189,8 @@ if (btnRotate) btnRotate.addEventListener('click', () => {
   btnRotate.textContent = controls.autoRotate ? '暂停自转' : '自动旋转';
 });
 if (btnReset) btnReset.addEventListener('click', () => {
-  camera.position.set(30, 16, 34);
-  controls.target.set(0, -1.5, 0);
+  camera.position.copy(homeDir).multiplyScalar(homeDist);
+  controls.target.set(0, 1.9, 0);
   controls.update();
 });
 if (btnFull) btnFull.addEventListener('click', () => {
