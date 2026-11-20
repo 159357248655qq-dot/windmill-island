@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>童话风车浮岛 · 程序化 Blender 场景</title>
+<meta name="description" content="纯 Python 程序化生成的童话风车浮岛，Blender 5.2 + EEVEE Next 渲染，192 帧 8 秒动画。">
+<style>
+:root{
+  --sky-0:#0b1a33; --sky-1:#12325c; --sky-2:#2f6ea8; --sky-3:#8fc4e8;
+  --ink:#eaf2fb; --dim:#9db4cc; --line:rgba(255,255,255,.14);
+  --warm:#ffb457; --red:#e2684f; --leaf:#7fc45f; --water:#5aa8e0;
+  --radius:18px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;color:var(--ink);
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #1d4a7d 0%, transparent 60%),
+    linear-gradient(180deg, var(--sky-0) 0%, var(--sky-1) 42%, #071427 100%);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+  line-height:1.75;
+}
+.wrap{width:min(1120px,92vw);margin:0 auto}
+a{color:var(--sky-3);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- hero ---------- */
+header.hero{padding:clamp(48px,8vw,110px) 0 clamp(28px,4vw,48px);text-align:center;position:relative}
+.eyebrow{
+  display:inline-flex;gap:.6em;align-items:center;
+  font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--sky-3);
+  border:1px solid var(--line);border-radius:999px;padding:.42em 1.05em;
+  background:rgba(255,255,255,.05);backdrop-filter:blur(6px);
+}
+h1{
+  font-size:clamp(30px,5.4vw,60px);line-height:1.16;margin:.55em 0 .3em;
+  font-weight:800;letter-spacing:-.01em;
+  background:linear-gradient(180deg,#ffffff 12%,#b9d7f2 62%,#7fa8cc 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.sub{color:var(--dim);font-size:clamp(14px,1.5vw,17px);max-width:640px;margin:0 auto}
+.tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:22px}
+.tag{
+  font-size:12.5px;color:#cfe2f5;border:1px solid var(--line);
+  background:rgba(255,255,255,.045);border-radius:999px;padding:.3em .85em;
+}
+
+/* ---------- video ---------- */
+.stage{margin:clamp(26px,4vw,46px) 0 0}
+.frame{
+  position:relative;border-radius:var(--radius);overflow:hidden;
+  border:1px solid var(--line);
+  box-shadow:0 30px 80px -30px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.04) inset;
+  background:#06101f;
+}
+.frame video{display:block;width:100%;height:auto;background:#06101f}
+.frame .glow{
+  position:absolute;inset:auto 0 -40% 0;height:60%;pointer-events:none;
+  background:radial-gradient(60% 100% at 50% 0%, rgba(120,190,255,.18), transparent 70%);
+}
+.caption{
+  display:flex;flex-wrap:wrap;gap:10px 20px;justify-content:space-between;
+  color:var(--dim);font-size:13px;margin-top:12px;padding:0 4px;
+}
+.caption b{color:var(--ink);font-weight:600}
+
+/* ---------- sections ---------- */
+section{padding:clamp(46px,7vw,86px) 0 0}
+h2{
+  font-size:clamp(20px,2.6vw,28px);margin:0 0 .2em;font-weight:750;letter-spacing:-.01em;
+  display:flex;align-items:center;gap:.6em;
+}
+h2::before{content:"";width:26px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--warm),transparent)}
+.lead{color:var(--dim);margin:0 0 26px;font-size:15px}
+
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:860px){.grid3,.grid4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:540px){.grid3,.grid4{grid-template-columns:1fr}}
+.shot{
+  border-radius:14px;overflow:hidden;border:1px solid var(--line);
+  background:rgba(255,255,255,.03);transition:transform .35s ease,border-color .35s ease;
+}
+.shot:hover{transform:translateY(-3px);border-color:rgba(140,200,255,.45)}
+.shot img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover}
+.shot figcaption{padding:9px 12px;font-size:12.5px;color:var(--dim)}
+.shot figcaption b{color:var(--ink);font-weight:600}
+
+.specs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:760px){.specs{grid-template-columns:repeat(2,1fr)}}
+.spec{
+  border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
+}
+.spec .k{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.spec .v{font-size:clamp(19px,2.4vw,25px);font-weight:750;margin-top:4px;font-variant-numeric:tabular-nums}
+.spec .v small{font-size:12.5px;font-weight:500;color:var(--dim);margin-left:3px}
+
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);font-weight:600}
+td:first-child{color:#cfe2f5;white-space:nowrap}
+tbody tr:hover{background:rgba(255,255,255,.03)}
+
+.notes{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:760px){.notes{grid-template-columns:1fr}}
+.note{
+  border:1px solid var(--line);border-left:2px solid var(--warm);border-radius:0 14px 14px 0;
+  padding:15px 18px;background:rgba(255,255,255,.03);font-size:14px;color:#d3e2f1;
+}
+.note b{color:#fff}
+
+footer{
+  margin-top:clamp(50px,7vw,90px);padding:26px 0 46px;border-top:1px solid var(--line);
+  color:var(--dim);font-size:13px;display:flex;flex-wrap:wrap;gap:10px 22px;justify-content:space-between
+}
+.dl{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.btn{
+  display:inline-flex;align-items:center;gap:.5em;padding:.62em 1.15em;border-radius:999px;
+  font-size:14px;font-weight:600;color:#08121f;
+  background:linear-gradient(180deg,#ffe1b8,#ffb457);
+  box-shadow:0 10px 26px -12px rgba(255,180,87,.8);
+  transition:transform .2s ease,filter .2s ease;
+}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.06);text-decoration:none}
+.btn.ghost{
+  background:transparent;color:var(--ink);border:1px solid var(--line);box-shadow:none
+}
+.btn.ghost:hover{border-color:rgba(140,200,255,.5)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">Blender 5.2 · EEVEE Next · 程序化生成</span>
+  <h1>童话风车浮岛</h1>
+  <p class="sub">没有一张贴图、没有一个外部模型。整座浮岛、风车、木屋、溪流与瀑布，全部由 Python 逐顶点、逐节点生成。</p>
+  <div class="tags">
+    <span class="tag">236 个对象</span>
+    <span class="tag">37 个程序化材质</span>
+    <span class="tag">192 帧 / 8.0 秒</span>
+    <span class="tag">1600 × 900 / 24fps</span>
+  </div>
+</header>
+
+<div class="stage">
+  <div class="frame">
+    <video src="assets/windmill_island.mp4" poster="assets/poster.webp"
+           autoplay muted loop playsinline controls preload="metadata"></video>
+    <div class="glow"></div>
+  </div>
+  <div class="caption">
+    <span><b>环绕运镜</b> · 192 帧循环，首尾帧对齐可无缝播放</span>
+    <span><b>H.264</b> · 4.5 MB · 无音轨</span>
+  </div>
+</div>
+
+<section>
+  <h2>镜头三帧</h2>
+  <p class="lead">相机沿一段 8 秒弧线绕岛半周，从左侧 3/4 视角转到右侧，露出背面的池塘与瀑布。</p>
+  <div class="grid3">
+    <figure class="shot"><img src="assets/shot_a.webp" alt="第 1 帧：左侧视角" loading="lazy"><figcaption><b>帧 001</b> · 起幅，风车正面</figcaption></figure>
+    <figure class="shot"><img src="assets/shot_b.webp" alt="第 96 帧：正面视角" loading="lazy"><figcaption><b>帧 096</b> · 中景，木屋与溪流</figcaption></figure>
+    <figure class="shot"><img src="assets/shot_c.webp" alt="第 192 帧：右侧视角" loading="lazy"><figcaption><b>帧 192</b> · 落幅，瀑布全貌</figcaption></figure>
+  </div>
+</section>
+
+<section>
+  <h2>细节特写</h2>
+  <p class="lead">砖塔的错缝砌法、池水的径向深浅、溪流的流向泡沫、岛底的水平层理 —— 都是着色器里算出来的，不是画的。</p>
+  <div class="grid4">
+    <figure class="shot"><img src="assets/detail_mill.webp" alt="风车塔身特写" loading="lazy"><figcaption><b>砖塔</b> · ARCTAN2 角度映射</figcaption></figure>
+    <figure class="shot"><img src="assets/detail_pond.webp" alt="池塘特写" loading="lazy"><figcaption><b>池塘</b> · 径向色带 + 泡沫环</figcaption></figure>
+    <figure class="shot"><img src="assets/detail_stream.webp" alt="溪流特写" loading="lazy"><figcaption><b>溪流</b> · 拉伸噪声做流向</figcaption></figure>
+    <figure class="shot"><img src="assets/detail_rock.webp" alt="岛底岩石特写" loading="lazy"><figcaption><b>岛底</b> · 层理 + 空气透视</figcaption></figure>
+  </div>
+</section>
+
+<section>
+  <h2>工程规格</h2>
+  <p class="lead">整套场景由一个 86 KB 的 Python 脚本从零构建，改一个数字就能重跑。</p>
+  <div class="specs">
+    <div class="spec"><div class="k">对象 / 材质</div><div class="v">236 / 37</div></div>
+    <div class="spec"><div class="k">渲染器</div><div class="v">EEVEE<small>Next</small></div></div>
+    <div class="spec"><div class="k">单帧耗时</div><div class="v">~2.8<small>秒</small></div></div>
+    <div class="spec"><div class="k">总渲染时长</div><div class="v">~9<small>分钟</small></div></div>
+  </div>
+
+  <table>
+    <thead><tr><th>模块</th><th>实现方式</th></tr></thead>
+    <tbody>
+      <tr><td>浮岛地形</td><td>径向高度场 + 多频噪声扰动，池塘与河道是挖出来的凹坑，不是贴上去的圆片</td></tr>
+      <tr><td>岛底岩体</td><td>84 圈环带放样，四层噪声叠加角度相位漂移形成水平层理与扶壁，底部收口成圆钝巨石</td></tr>
+      <tr><td>风车</td><td>圆柱砖塔 + 圆锥瓦顶 + 四叶木格扇面，叶片带旋转关键帧</td></tr>
+      <tr><td>水体</td><td>风格化自发光液体：近关闭镜面反射，靠 ColorRamp 驱动自发光，避免反射天空变白</td></tr>
+      <tr><td>瀑布</td><td>三层透明水膜叠加，沿 Z 拉长的噪声做下落纹理，上下端 alpha 淡出</td></tr>
+      <tr><td>植被</td><td>22 000 片草叶为三角面片，10 棵树用黄金角分布 9 簇叶卡堆冠</td></tr>
+      <tr><td>天空</td><td>世界着色器按视线 Z 分量做 9 段色带渐变，从地平线暖白过渡到天顶深蓝</td></tr>
+      <tr><td>云</td><td>二十面球噪声位移 + Remesh(Voxel) + Smooth 融合，按法线朝向分冷暖两面</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>踩过的坑</h2>
+  <p class="lead">写这篇的时候真正卡住的地方，记下来免得下次再踩。</p>
+  <div class="notes">
+    <div class="note"><b>天空渐变方向是反的。</b>World 里 Incoming 向量由表面指向眼睛，往下看反而数值更大，色带一开始整条贴反，画面只剩一片平蓝。</div>
+    <div class="note"><b>水面发白不是颜色问题。</b>roughness 0.03 的近镜面在明亮天空下把整片天反射成白色，调深基色完全无效，得把镜面反射关掉。</div>
+    <div class="note"><b>砖纹在圆柱上会拉成扇形。</b>Brick 纹理是二维 X/Y，必须用 ARCTAN2(Y,X) 转成角度再当 X 坐标，否则一圈圈竖条。</div>
+    <div class="note"><b>浮空碎块会抢戏。</b>在岛周围撒一圈同质小碎岩，渲染出来像天上飘的一堆土豆，整段删掉画面立刻干净。</div>
+  </div>
+
+  <div class="dl">
+    <a class="btn" href="assets/windmill_island.mp4" download>下载动画 MP4 · 4.5 MB</a>
+    <a class="btn ghost" href="assets/poster.webp" target="_blank" rel="noopener">查看封面静帧</a>
+  </div>
+</section>
+
+<footer>
+  <span>童话风车浮岛 · 纯程序化 Blender 场景</span>
+  <span>Blender 5.2.2 LTS · EEVEE Next · 192 帧</span>
+</footer>
+
+</div>
+</body>
+</html>
